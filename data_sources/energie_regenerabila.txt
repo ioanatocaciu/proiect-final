@@ -1,0 +1,7 @@
+Energia regenerabila provine din surse care se refac in mod natural. Exemple importante sunt energia solara, eoliana, hidroenergia si energia geotermala.
+
+Panourile fotovoltaice transforma lumina soarelui in electricitate. Productia lor variaza in functie de anotimp, vreme si pozitionarea panourilor.
+
+Turbinele eoliene folosesc miscarea aerului pentru a produce energie electrica. Parcurile eoliene pot fi instalate pe uscat sau in largul marii.
+
+O provocare a surselor solare si eoliene este variabilitatea productiei. Bateriile si interconexiunile dintre retele pot ajuta la echilibrarea cererii si ofertei.
