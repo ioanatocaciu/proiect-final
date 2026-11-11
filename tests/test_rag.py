@@ -20,12 +20,23 @@ class FakeCollection:
     def delete(self, where):
         self.deleted_sources.append(where["source"])
 
+    def get(self, include):
+        assert include == ["documents", "metadatas"]
+        return {
+            "ids": ["sample.txt:1:2"],
+            "documents": ["Relevant document text"],
+            "metadatas": [
+                {"source": "sample.txt", "page": 1, "chunk_number": 2}
+            ],
+        }
+
     def upsert(self, ids, documents, metadatas):
         self.upserted = (ids, documents, metadatas)
 
     def query(self, **kwargs):
         self.query_arguments = kwargs
         return {
+            "ids": [["sample.txt:1:2"]],
             "documents": [["Relevant document text"]],
             "metadatas": [[
                 {"source": "sample.txt", "page": 1, "chunk_number": 2}
@@ -77,6 +88,70 @@ def test_rag_tool_queries_ten_results_and_returns_validated_context():
         "[Sursa: sample.txt; pagina: 1; fragment: 2; distanta: 0.1200]\n"
         "Relevant document text"
     )
+
+
+def test_rag_tool_combines_semantic_and_bm25_results():
+    class HybridCollection(FakeCollection):
+        def get(self, include):
+            return {
+                "ids": [
+                    "semantic.txt:1:1",
+                    "keyword.txt:1:1",
+                    "unrelated.txt:1:1",
+                ],
+                "documents": [
+                    "A semantically related passage",
+                    "The exact keyword appears here",
+                    "Unrelated content",
+                ],
+                "metadatas": [
+                    {"source": "semantic.txt", "page": 1, "chunk_number": 1},
+                    {"source": "keyword.txt", "page": 1, "chunk_number": 1},
+                    {"source": "unrelated.txt", "page": 1, "chunk_number": 1},
+                ],
+            }
+
+        def query(self, **kwargs):
+            self.query_arguments = kwargs
+            return {
+                "ids": [["semantic.txt:1:1"]],
+                "documents": [["A semantically related passage"]],
+                "metadatas": [[
+                    {"source": "semantic.txt", "page": 1, "chunk_number": 1}
+                ]],
+                "distances": [[0.1]],
+            }
+
+    output = RAGSearchTool(HybridCollection()).run(
+        RAGSearchInput(question="exact keyword")
+    )
+
+    assert "keyword.txt" in output.context
+    assert "semantic.txt" in output.context
+    assert "unrelated.txt" not in output.context
+
+
+def test_assistant_uses_openrouter_configuration(monkeypatch):
+    import rag_agent
+
+    client_options = {}
+
+    def fake_openai(**kwargs):
+        client_options.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(rag_agent, "OpenAI", fake_openai)
+    monkeypatch.setenv("OPEN_ROUTER_API_KEY", "test-key")
+    monkeypatch.setenv("OPEN_ROUTER_MODEL_NAME", "test/router-model")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    assistant = RAGAssistant(RAGSearchTool(FakeCollection()))
+
+    assert client_options == {
+        "base_url": "https://openrouter.ai/api/v1",
+        "api_key": "test-key",
+    }
+    assert assistant.model == "test/router-model"
 
 
 def test_agent_passes_rag_tool_context_to_final_llm_answer():

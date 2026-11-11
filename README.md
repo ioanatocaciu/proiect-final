@@ -3,7 +3,9 @@
 Proiectul contine doua programe:
 
 - `index_documents.py` citeste toate fisierele `.txt` si `.pdf` din `data_sources`, le imparte in fragmente suprapuse si le indexeaza in ChromaDB.
-- `rag_agent.py` valideaza intrebarea, cauta 10 fragmente relevante prin tool-ul `rag_search` si trimite contextul validat agentului OpenAI pentru raspuns.
+- `rag_agent.py` valideaza intrebarea si combina cautarea semantica din ChromaDB cu
+  BM25 pentru rezultate lexicale, apoi trimite contextul validat agentului OpenAI
+  sau OpenRouter pentru raspuns.
 
 Fiecare fragment are metadatele `source` (numele fisierului), `page` (pagina; pentru un fisier text este pagina 1) si `chunk_number`. PDF-urile sunt citite pagina cu pagina folosind pypdf. Fragmentele sunt de cel mult 1000 de caractere, cu 150 de caractere de suprapunere.
 
@@ -16,7 +18,10 @@ uv sync
 Copy-Item .env.example .env
 ```
 
-Adauga cheia OpenAI in `.env` ca `OPENAI_API_KEY`. Poti schimba modelul prin `OPENAI_MODEL`.
+Configureaza fie `OPEN_ROUTER_API_KEY` si `OPEN_ROUTER_MODEL_NAME`, fie
+`OPENAI_API_KEY` si optional `OPENAI_MODEL` in `.env`. Cu OpenRouter, agentul
+foloseste endpoint-ul OpenRouter si modelul `openrouter/free` daca nu este
+specificat altul.
 
 Porneste serverul ChromaDB intr-un terminal:
 
